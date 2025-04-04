@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relaciones entre Personajes</title>
+  <style>
+    #network {
+      width: 100%;
+      height: 500px;
+      border: 1px solid #ccc;
+    }
+  </style>
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+</head>
+<body>
+  <div id="network"></div>
+  <button onclick="editarRelaciones()">Editar Relaciones</button>
+
+  <script>
+    let data = {}; // Variable para almacenar el JSON cargado
+    let nodes, edges, network; // Variables para los nodos, aristas y la red
+
+    // Función para cargar el JSON externo
+    async function cargarJSON(url) {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`Error al cargar el JSON: ${response.statusText}`);
+        }
+        data = await response.json();
+        inicializarGrafo();
+      } catch (error) {
+        console.error("Error:", error);
+      }
+    }
+
+    // Función para inicializar el grafo
+    function inicializarGrafo() {
+      // Crear nodos y aristas para vis.js
+      nodes = new vis.DataSet(data.personajes.map(personaje => ({
+        id: personaje.id,
+        label: personaje.nombre
+      })));
+
+      edges = new vis.DataSet();
+      data.personajes.forEach(personaje => {
+        personaje.relaciones.forEach(relacionId => {
+          edges.add({ from: personaje.id, to: relacionId });
+        });
+      });
+
+      // Crear la red
+      const container = document.getElementById('network');
+      const networkData = {
+        nodes: nodes,
+        edges: edges
+      };
+      const options = {};
+      network = new vis.Network(container, networkData, options);
+    }
+
+    // Función para editar relaciones
+    function editarRelaciones() {
+      const nuevoPersonajeId = prompt("Ingresa el ID del personaje:");
+      const nuevaRelacionId = prompt("Ingresa el ID de la relación:");
+
+      const personaje = data.personajes.find(p => p.id == nuevoPersonajeId);
+      if (personaje) {
+        if (!personaje.relaciones.includes(nuevaRelacionId)) {
+          personaje.relaciones.push(Number(nuevaRelacionId));
+          edges.add({ from: Number(nuevoPersonajeId), to: Number(nuevaRelacionId) });
+          alert("Relación añadida.");
+        } else {
+          alert("La relación ya existe.");
+        }
+      } else {
+        alert("Personaje no encontrado.");
+      }
+    }
+
+    // Cargar el JSON externo al cargar la página
+    window.onload = () => {
+      const url = "tree-data.json"; // Cambia esto por la URL de tu JSON
+      cargarJSON(url);
+    };
+  </script>
+</body>
+</html>
